@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { signInWithGoogle } from "../../lib/auth";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
@@ -12,6 +13,18 @@ export default function LoginPage() {
   const [showPw, setShowPw]     = useState(false);
   const [error, setError]       = useState("");
   const [remember, setRemember] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      await signInWithGoogle(); // this redirects the browser away, so no further code runs here on success
+    } catch (err) {
+      setError(err.message || "Google sign-in failed. Please try again.");
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,9 +92,9 @@ export default function LoginPage() {
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-sm font-medium text-gray-700">Password</label>
-              <button type="button" className="text-sm text-green-700 font-medium hover:underline">
+              <Link to="/forgot-password" className="text-sm text-green-700 font-medium hover:underline">
                 Forgot password?
-              </button>
+              </Link>
             </div>
             <div className="relative">
               <input
@@ -142,7 +155,9 @@ export default function LoginPage() {
           {/* Google */}
           <button
             type="button"
-            className="w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 transition"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            className="w-full border border-gray-200 rounded-full py-3 text-sm font-medium text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             <svg width="18" height="18" viewBox="0 0 48 48">
               <path fill="#4285F4" d="M47.5 24.6c0-1.6-.1-3.1-.4-4.6H24v8.7h13.2c-.6 3-2.3 5.5-4.9 7.2v6h7.9c4.6-4.3 7.3-10.6 7.3-17.3z"/>
@@ -150,7 +165,7 @@ export default function LoginPage() {
               <path fill="#FBBC05" d="M10.8 28.8c-.5-1.4-.7-2.8-.7-4.3s.3-3 .7-4.3v-6.2H2.7C1 17.4 0 20.6 0 24s1 6.6 2.7 9.1l8.1-4.3z"/>
               <path fill="#EA4335" d="M24 9.5c3.4 0 6.5 1.2 8.9 3.5l6.6-6.6C35.9 2.4 30.4 0 24 0 14.8 0 6.7 5.1 2.7 12.7l8.1 4.3C12.7 11.4 17.9 9.5 24 9.5z"/>
             </svg>
-            Continue with Google
+            {googleLoading ? "Redirecting to Google..." : "Continue with Google"}
           </button>
         </form>
 

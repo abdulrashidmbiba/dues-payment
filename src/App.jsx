@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage    from "./pages/LandingPage";
 import LoginPage      from "./pages/auth/LoginPage";
 import RegisterPage   from "./pages/auth/RegisterPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage  from "./pages/auth/ResetPasswordPage";
 import UserDashboard  from "./pages/user/UserDashboard";
 import PayDues        from "./pages/user/payDues";
 import BalanceRecords from "./pages/user/balanceRecords";
@@ -15,6 +17,8 @@ export default function App() {
       <Route path="/"         element={<LandingPage />} />
       <Route path="/login"    element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
       <Route path="/dashboard" element={
         <ProtectedRoute><UserDashboard /></ProtectedRoute>
