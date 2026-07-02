@@ -47,9 +47,9 @@ export default function RegisterPage() {
           value={form[name]}
           onChange={handleChange}
           placeholder={placeholder}
-          className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition
-            ${errors[name] ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-green-700"}
-            ${showToggle ? "pr-11" : ""}`}
+          className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100
+  ${errors[name] ? "border-red-400 bg-red-50" : "border-gray-300"}
+  ${showToggle ? "pr-11" : ""}`}
         />
         {showToggle && (
           <button

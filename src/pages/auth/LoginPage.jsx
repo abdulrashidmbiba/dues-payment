@@ -69,9 +69,9 @@ export default function LoginPage() {
               onChange={(e) => { setEmail(e.target.value); setError(""); }}
               placeholder="user@example.com"
               disabled={isLocked}
-              className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition
-                ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-green-700"}
-                ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100
+  ${error ? "border-red-400 bg-red-50" : "border-gray-300"}
+  ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
             />
           </div>
 
@@ -90,9 +90,9 @@ export default function LoginPage() {
                 onChange={(e) => { setPassword(e.target.value); setError(""); }}
                 placeholder="Enter your password"
                 disabled={isLocked}
-                className={`w-full border rounded-xl px-4 py-3 pr-11 text-sm outline-none transition
-                  ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-green-700"}
-                  ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+               className={`w-full border rounded-xl px-4 py-3 pr-11 text-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100
+  ${error ? "border-red-400 bg-red-50" : "border-gray-300"}
+  ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
               />
               <button
                 type="button"
