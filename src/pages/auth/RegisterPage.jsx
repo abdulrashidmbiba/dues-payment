@@ -1,6 +1,41 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { registerMember } from "../../lib/auth";
+
+// Moved OUTSIDE the RegisterPage component on purpose. Defining this inside
+// RegisterPage meant it was recreated as a brand-new component on every
+// keystroke, so React unmounted/remounted the <input> each time and the
+// field lost focus after every letter. Living at module scope fixes that.
+function Field({ label, name, type = "text", placeholder, showToggle, show, onToggle, value, error, onChange }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          name={name}
+          type={showToggle ? (show ? "text" : "password") : type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100
+  ${error ? "border-red-400 bg-red-50" : "border-gray-300"}
+  ${showToggle ? "pr-11" : ""}`}
+        />
+        {showToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            {show ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -12,6 +47,8 @@ export default function RegisterPage() {
     firstName: "", lastName: "", email: "", password: "", confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const validate = () => {
     const e = {};
@@ -28,42 +65,27 @@ export default function RegisterPage() {
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    const id = "NEX-" + new Date().getFullYear() + "-" + String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
-    setMemberId(id);
-    setStep("success");
-  };
 
-  const Field = ({ label, name, type = "text", placeholder, showToggle, show, onToggle }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <div className="relative">
-        <input
-          name={name}
-          type={showToggle ? (show ? "text" : "password") : type}
-          value={form[name]}
-          onChange={handleChange}
-          placeholder={placeholder}
-          className={`w-full border rounded-xl px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-2 focus:ring-green-100
-  ${errors[name] ? "border-red-400 bg-red-50" : "border-gray-300"}
-  ${showToggle ? "pr-11" : ""}`}
-        />
-        {showToggle && (
-          <button
-            type="button"
-            onClick={onToggle}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            {show ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        )}
-      </div>
-      {errors[name] && <p className="text-xs text-red-500 mt-1">{errors[name]}</p>}
-    </div>
-  );
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const { profile } = await registerMember({
+        fullName: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+        password: form.password,
+      });
+      setMemberId(profile.member_id);
+      setStep("success");
+    } catch (err) {
+      setSubmitError(err.message || "Registration failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // ── Success screen ──
   if (step === "success") {
@@ -85,7 +107,7 @@ export default function RegisterPage() {
             onClick={() => navigate("/login")}
             className="w-full bg-green-800 hover:bg-green-700 text-white font-semibold py-3 rounded-full transition"
           >
-            Go to Dashboard
+            Go to Login
           </button>
         </div>
       </div>
@@ -107,10 +129,26 @@ export default function RegisterPage() {
           <p className="text-sm text-gray-500 mt-1">Join your organization today</p>
         </div>
 
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+            <span className="text-red-500">⚠️</span>
+            <p className="text-red-600 text-sm">{submitError}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Field label="First Name"        name="firstName"       placeholder="Enter your first name" />
-          <Field label="Last Name"         name="lastName"        placeholder="Enter your last name" />
-          <Field label="Email Address"     name="email"           placeholder="user@example.com" />
+          <Field
+            label="First Name" name="firstName" placeholder="Enter your first name"
+            value={form.firstName} error={errors.firstName} onChange={handleChange}
+          />
+          <Field
+            label="Last Name" name="lastName" placeholder="Enter your last name"
+            value={form.lastName} error={errors.lastName} onChange={handleChange}
+          />
+          <Field
+            label="Email Address" name="email" placeholder="user@example.com"
+            value={form.email} error={errors.email} onChange={handleChange}
+          />
           <Field
             label="Password"
             name="password"
@@ -118,6 +156,9 @@ export default function RegisterPage() {
             showToggle
             show={showPw}
             onToggle={() => setShowPw(!showPw)}
+            value={form.password}
+            error={errors.password}
+            onChange={handleChange}
           />
           <Field
             label="Confirm Password"
@@ -126,13 +167,17 @@ export default function RegisterPage() {
             showToggle
             show={showCf}
             onToggle={() => setShowCf(!showCf)}
+            value={form.confirmPassword}
+            error={errors.confirmPassword}
+            onChange={handleChange}
           />
 
           <button
             type="submit"
-            className="w-full bg-green-800 hover:bg-green-700 text-white font-semibold py-3 rounded-full transition"
+            disabled={submitting}
+            className="w-full bg-green-800 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-full transition"
           >
-            Create Account
+            {submitting ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 

@@ -13,10 +13,10 @@ export default function LoginPage() {
   const [error, setError]       = useState("");
   const [remember, setRemember] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (isLocked) return;
-    const result = login(email, password);
+    const result = await login(email, password);
     if (result.success) {
       if (result.role === "admin")      navigate("/admin");
       else if (result.role === "treasurer") navigate("/treasurer");
