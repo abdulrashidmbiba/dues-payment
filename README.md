@@ -1,4 +1,6 @@
 #NexisPay
+<img width="1254" height="1254" alt="WhatsApp Image 2026-07-03 at 6 50 23 PM" src="https://github.com/user-attachments/assets/2cfcafcf-cff3-44cd-9fba-1abe37c9c876" />
+
 
 Simple. Transparent. Secure.
 
