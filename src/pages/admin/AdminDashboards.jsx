@@ -247,7 +247,7 @@ function DonutLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name 
 }
 
 // ── DASHBOARD PAGE ────────────────────────────────────────────────
-function DashboardPage({ onNavigate }) {
+function DashboardPage({ onNavigate, pendingCount = 0 }) {
   const [chartRange, setChartRange] = useState("Last 6 Months");
   const [liveStats, setLiveStats] = useState(null);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
@@ -372,10 +372,10 @@ function DashboardPage({ onNavigate }) {
           icon={Banknote} iconBg="bg-yellow-50"
           label="Total Revenue" value={liveStats ? `GHS ${liveStats.totalCollected}` : "…"}
         />
-        <StatCard
+       <StatCard
           icon={Clock} iconBg="bg-red-50"
-          urgent={true}
-          label="Pending Approvals" value="2"
+          urgent={pendingCount > 0}
+          label="Pending Approvals" value={pendingCount}
           valueClass="text-gray-900"
         />
       </div>
@@ -536,10 +536,10 @@ export default function AdminDashboard() {
 
       {/* main content */}
       <main className="flex-1 p-4 sm:p-6 md:p-8 min-h-screen overflow-x-hidden">
-        {activePage === "Approvals"
+      {activePage === "Approvals"
           ? <ActivePage onPendingCountChange={refreshPendingCount} />
           : activePage === "Dashboard"
-          ? <ActivePage onNavigate={setActivePage} />
+          ? <ActivePage onNavigate={setActivePage} pendingCount={pendingCount} />
           : <ActivePage />
         }
       </main>
