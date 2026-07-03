@@ -29,5 +29,9 @@
     "globals": "^17.6.0",
     "tailwindcss": "^4.3.2",
     "vite": "^8.1.0"
-  }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+
 }
