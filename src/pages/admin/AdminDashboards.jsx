@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { getTreasurerStats, getAllMembers, getAllPayments } from "../../lib/api";
 import {
   LayoutDashboard, Users, CreditCard, Search, RefreshCw,
@@ -246,9 +247,11 @@ function DonutLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name 
 }
 
 // ── DASHBOARD PAGE ────────────────────────────────────────────────
-function DashboardPage() {
+function DashboardPage({ onNavigate }) {
   const [chartRange, setChartRange] = useState("Last 6 Months");
   const [liveStats, setLiveStats] = useState(null);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const { toastSuccess, toastError } = useToast();
 
   useEffect(() => {
     (async () => {
@@ -268,6 +271,36 @@ function DashboardPage() {
     })();
   }, []);
 
+  const handleExportReport = () => {
+    if (!liveStats) {
+      toastError("Stats are still loading — try again in a moment.");
+      return;
+    }
+    const rows = [
+      ["Metric", "Value"],
+      ["Total Members", liveStats.totalMembers],
+      ["Members Paid", liveStats.membersPaid],
+      ["Total Revenue (GHS)", liveStats.totalCollected],
+      ["Generated At", new Date().toLocaleString()],
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "nexispay-overview-report.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toastSuccess("Report downloaded.");
+  };
+
+  const goTo = (label) => {
+    setActionMenuOpen(false);
+    onNavigate?.(label);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* page header */}
@@ -277,18 +310,51 @@ function DashboardPage() {
           <p className="text-sm text-gray-400 mt-0.5">Welcome back. Here's what's happening with NexisPay today.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+          <button
+            onClick={handleExportReport}
+            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 8l-3-3m3 3l3-3"/>
             </svg>
             Export Report
           </button>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
-            </svg>
-            New Action
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setActionMenuOpen(!actionMenuOpen)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-green-700 text-white rounded-lg text-sm font-semibold hover:bg-green-600 transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+              </svg>
+              New Action
+            </button>
+            {actionMenuOpen && (
+              <>
+                <div onClick={() => setActionMenuOpen(false)} className="fixed inset-0 z-10" />
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                  <button
+                    onClick={() => goTo("Announcements")}
+                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    Post Announcement
+                  </button>
+                  <button
+                    onClick={() => goTo("System Update")}
+                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition border-t border-gray-50"
+                  >
+                    Add Dues Category
+                  </button>
+                  <button
+                    onClick={() => goTo("Members")}
+                    className="w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition border-t border-gray-50"
+                  >
+                    Manage Members
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -472,6 +538,8 @@ export default function AdminDashboard() {
       <main className="flex-1 p-4 sm:p-6 md:p-8 min-h-screen overflow-x-hidden">
         {activePage === "Approvals"
           ? <ActivePage onPendingCountChange={refreshPendingCount} />
+          : activePage === "Dashboard"
+          ? <ActivePage onNavigate={setActivePage} />
           : <ActivePage />
         }
       </main>
