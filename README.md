@@ -36,9 +36,13 @@ NexisPay turns a payment form into a transparency platform. Members don't just p
 - Post announcements, review pending approvals, export CSV reports
 - (Deliberately can't promote/demote member roles or delete accounts that stays admin-only, enforced at the database level, not just hidden in the UI)
 
+TREASURER LOGIN: mygoals.treasurer@gmail.com/ password:treasurer23421
+
 # For Admins
 - Everything Treasurers can do, plus full member management — promote, demote, remove
 - Complete organizational oversight from one dashboard
+
+ADMIN LOGIN: mygoals+admin@gmail.com/ password:admin23421
 
 # Everywhere
 - Fully responsive — animated slide-out navigation on mobile, static sidebar on desktop
