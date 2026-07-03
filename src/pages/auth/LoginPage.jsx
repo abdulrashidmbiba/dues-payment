@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [error, setError]       = useState("");
   const [remember, setRemember] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -26,16 +27,22 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLocked) return;
-    const result = await login(email, password);
-    if (result.success) {
-      if (result.role === "admin")      navigate("/admin");
-      else if (result.role === "treasurer") navigate("/treasurer");
-      else navigate("/dashboard");
-    } else {
-      setError(result.message);
+    if (isLocked || loggingIn) return;
+    setLoggingIn(true);
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        if (result.role === "admin")      navigate("/admin");
+        else if (result.role === "treasurer") navigate("/treasurer");
+        else navigate("/dashboard");
+      } else {
+        setError(result.message);
+        toastError(result.message);
+      }
+    } finally {
+      setLoggingIn(false);
     }
   };
 
@@ -136,13 +143,14 @@ export default function LoginPage() {
             </p>
           )}
 
-          {/* Submit */}
+
+ {/* Submit */}
           <button
             type="submit"
-            disabled={isLocked}
+            disabled={isLocked || loggingIn}
             className="w-full bg-green-800 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-full transition"
           >
-            Sign In
+            {loggingIn ? "Signing In..." : "Sign In"}
           </button>
 
           {/* Divider */}
