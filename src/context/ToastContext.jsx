@@ -3,7 +3,7 @@ import { CheckCircle2, XCircle, X } from "lucide-react";
 
 const ToastContext = createContext(null);
 
-let idCounter = 0;
+let idCounter = 0; 
 
 function Toast({ toast, onClose }) {
   const [visible, setVisible] = useState(false);
