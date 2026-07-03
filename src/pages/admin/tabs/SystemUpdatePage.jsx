@@ -119,7 +119,7 @@ export default function SystemUpdatePage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">System Update</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">System Update</h1>
         <p className="text-sm text-gray-400 mt-0.5">Manage dues categories and community impact projects.</p>
       </div>
 
@@ -136,8 +136,8 @@ export default function SystemUpdatePage() {
 
         <div className="flex flex-col gap-2 mb-4">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center gap-3 border border-gray-100 rounded-lg px-4 py-2.5">
-              <span className="flex-1 text-sm font-medium text-gray-800">{cat.name}</span>
+            <div key={cat.id} className="flex flex-wrap items-center gap-3 border border-gray-100 rounded-lg px-4 py-2.5">
+              <span className="flex-1 min-w-[120px] text-sm font-medium text-gray-800">{cat.name}</span>
               <span className="text-xs text-gray-400">GHS</span>
               <input
                 type="number"
@@ -145,7 +145,7 @@ export default function SystemUpdatePage() {
                 onBlur={(e) => updateCategoryAmount(cat, e.target.value)}
                 className="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-green-600"
               />
-              <span className="text-xs text-gray-400 w-28">
+              <span className="text-xs text-gray-400">
                 {cat.due_date ? `Due ${new Date(cat.due_date).toLocaleDateString()}` : "No due date"}
               </span>
               <button
@@ -161,8 +161,8 @@ export default function SystemUpdatePage() {
           {categories.length === 0 && <p className="text-sm text-gray-400">No dues categories yet.</p>}
         </div>
 
-        <form onSubmit={handleAddCategory} className="flex items-end gap-2 pt-3 border-t border-gray-100">
-          <div className="flex-1">
+        <form onSubmit={handleAddCategory} className="flex flex-wrap items-end gap-2 pt-3 border-t border-gray-100">
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-gray-500 mb-1">Name</label>
             <input
               value={newCat.name}
@@ -171,7 +171,7 @@ export default function SystemUpdatePage() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-600"
             />
           </div>
-          <div className="w-28">
+          <div className="w-full sm:w-28">
             <label className="block text-xs font-medium text-gray-500 mb-1">Amount</label>
             <input
               type="number"
@@ -181,7 +181,7 @@ export default function SystemUpdatePage() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-600"
             />
           </div>
-          <div className="w-40">
+          <div className="w-full sm:w-40">
             <label className="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
             <input
               type="date"
@@ -193,7 +193,7 @@ export default function SystemUpdatePage() {
           <button
             type="submit"
             disabled={addingCat}
-            className="flex items-center gap-1.5 bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="flex items-center justify-center gap-1.5 bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition w-full sm:w-auto"
           >
             <Plus size={15} /> Add
           </button>
@@ -218,7 +218,7 @@ export default function SystemUpdatePage() {
               <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
                 <div className="bg-green-500 h-2 rounded-full" style={{ width: `${p.percentFunded}%` }} />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-gray-400">Raised: GHS</span>
                 <input
                   type="number"
@@ -234,8 +234,8 @@ export default function SystemUpdatePage() {
           {projects.length === 0 && <p className="text-sm text-gray-400">No community projects yet.</p>}
         </div>
 
-        <form onSubmit={handleAddProject} className="flex items-end gap-2 pt-3 border-t border-gray-100">
-          <div className="flex-1">
+        <form onSubmit={handleAddProject} className="flex flex-wrap items-end gap-2 pt-3 border-t border-gray-100">
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-gray-500 mb-1">Project Title</label>
             <input
               value={newProject.title}
@@ -244,7 +244,7 @@ export default function SystemUpdatePage() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-600"
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
             <input
               value={newProject.description}
@@ -253,7 +253,7 @@ export default function SystemUpdatePage() {
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-600"
             />
           </div>
-          <div className="w-32">
+          <div className="w-full sm:w-32">
             <label className="block text-xs font-medium text-gray-500 mb-1">Target GHS</label>
             <input
               type="number"
@@ -265,7 +265,7 @@ export default function SystemUpdatePage() {
           <button
             type="submit"
             disabled={addingProject}
-            className="flex items-center gap-1.5 bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            className="flex items-center justify-center gap-1.5 bg-green-800 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition w-full sm:w-auto"
           >
             <Plus size={15} /> Add
           </button>

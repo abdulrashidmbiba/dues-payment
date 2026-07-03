@@ -1,39 +1,18 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { getMemberPaymentStatus, getPaymentHistory, getCommunityProjects } from "../../lib/api";
-import {
-  LayoutDashboard, CreditCard, History, Leaf,
-  Award, Bell, Settings, LogOut, Trophy
-} from "lucide-react";
-
-const navItems = [
-  { label: "Dashboard",     icon: LayoutDashboard, to: "/dashboard" },
-  { label: "Pay Dues",      icon: CreditCard,       to: "/dashboard/pay" },
-  { label: "History",       icon: History,          to: "/dashboard/history" },
-  { label: "Impact",        icon: Leaf,             to: "/dashboard" },
-  { label: "Badges",        icon: Award,            to: "/dashboard" },
-  { label: "Notifications", icon: Bell,             to: "/dashboard" },
-  { label: "Settings",      icon: Settings,         to: "/dashboard" },
-];
-
-// Badges are static for now — see SETUP.md, cut for tonight's deadline.
-const badges = [
-  { label: "EARLY BIRD", icon: "🏅", unlocked: true },
-  { label: "CONSISTENT", icon: "⭐", unlocked: true },
-  { label: "IMPACT MAKER", icon: "🚀", unlocked: true },
-  { label: "LOCKED",      icon: "🔒", unlocked: false },
-];
+import { getMemberPaymentStatus, getPaymentHistory, getAnnouncements } from "../../lib/api";
+import Sidebar from "../../componenets/shared/Sidebar";
+import { Bell, Calendar, Wallet, Megaphone } from "lucide-react";
 
 export default function UserDashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [active] = useState("Dashboard");
+  const { user } = useAuth();
 
   const [status, setStatus] = useState(null);
   const [recentPayments, setRecentPayments] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -41,15 +20,15 @@ export default function UserDashboard() {
 
     (async () => {
       try {
-        const [statusData, historyData, projectsData] = await Promise.all([
+        const [statusData, historyData, announcementsData] = await Promise.all([
           getMemberPaymentStatus(user.id),
           getPaymentHistory(user.id),
-          getCommunityProjects(),
+          getAnnouncements(),
         ]);
         if (!active) return;
         setStatus(statusData);
         setRecentPayments(historyData.slice(0, 3));
-        setProjects(projectsData.slice(0, 2));
+        setAnnouncements(announcementsData.slice(0, 5));
       } catch (err) {
         console.error("Dashboard load failed:", err);
       } finally {
@@ -60,8 +39,6 @@ export default function UserDashboard() {
     return () => { active = false; };
   }, [user?.id]);
 
-  const handleLogout = async () => { await logout(); navigate("/login"); };
-
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.full_name?.split(" ")[0] ?? "Member";
@@ -70,62 +47,62 @@ export default function UserDashboard() {
     : "ME";
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-
-      {/* ── SIDEBAR ── */}
-      <aside className="w-48 bg-gray-900 flex flex-col py-6 px-4 shrink-0">
-        <h1 className="text-lg font-bold mb-8 px-2">
-          <span className="text-green-400">Nexis</span>
-          <span className="text-yellow-400">Pay</span>
-        </h1>
-
-        <nav className="flex flex-col gap-1 flex-1">
-          {navItems.map(({ label, icon: Icon, to }) => (
-            <Link
-              key={label}
-              to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition
-                ${active === label
-                  ? "bg-green-800 text-white border-l-4 border-green-400"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"}`}
-            >
-              <Icon size={16} />
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 text-gray-400 hover:text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <Sidebar active="Dashboard" />
 
       {/* ── MAIN ── */}
-      <main className="flex-1 px-8 py-6 overflow-y-auto">
+      <main className="flex-1 px-4 sm:px-8 py-6 overflow-y-auto">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
-            <h2 className="text-2xl font-extrabold text-gray-900">
-              {greeting}, {firstName} 👋
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+              {greeting}, {firstName}
             </h2>
             <p className="text-sm text-gray-500 mt-0.5">
               {user?.program && user?.level ? `${user.level} · ${user.program}` : "Here's your payment summary."}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:bg-gray-50">
-              <Bell size={16} className="text-gray-500" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen(!notifOpen)}
+                className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm hover:bg-gray-50 relative"
+              >
+                <Bell size={16} className="text-gray-500" />
+                {announcements.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {announcements.length}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-100 font-semibold text-sm text-gray-800">Announcements</div>
+                  {announcements.length === 0 ? (
+                    <p className="text-sm text-gray-400 px-4 py-6 text-center">No announcements yet.</p>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+                      {announcements.map((a) => (
+                        <div key={a.id} className="flex items-start gap-2.5 px-4 py-3">
+                          <Megaphone size={14} className="text-blue-500 mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800">{a.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{a.message}</p>
+                            <p className="text-[11px] text-gray-400 mt-1">{new Date(a.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1 pr-4 py-1 shadow-sm">
               <div className="w-7 h-7 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">
                 {initials}
               </div>
-              <span className="text-sm font-medium text-gray-700">{user?.full_name ?? "Member"}</span>
+              <span className="hidden sm:inline text-sm font-medium text-gray-700">{user?.full_name ?? "Member"}</span>
             </div>
           </div>
         </div>
@@ -136,9 +113,9 @@ export default function UserDashboard() {
           <>
             {/* Deadline banner */}
             {status && !status.isPaid && status.daysUntilDue !== null && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-4 flex items-center justify-between mb-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-3 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-yellow-700 font-bold text-sm">!</div>
+                  <div className="w-8 h-8 rounded-full bg-yellow-200 flex items-center justify-center text-yellow-700 font-bold text-sm shrink-0">!</div>
                   <div>
                     <p className="font-semibold text-gray-800 text-sm">
                       Your dues deadline is in {status.daysUntilDue} day{status.daysUntilDue !== 1 ? "s" : ""}.
@@ -156,8 +133,7 @@ export default function UserDashboard() {
             )}
 
             {/* Stat cards */}
-            <div className="grid grid-cols-3 gap-5 mb-6">
-              {/* Payment Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Payment Status</p>
@@ -173,12 +149,11 @@ export default function UserDashboard() {
                 <p className="text-xs text-gray-400 mt-2">Current Semester</p>
               </div>
 
-              {/* Next Due Date */}
               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Next Due Date</p>
                   <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
-                    <span className="text-red-500 text-sm">📅</span>
+                    <Calendar size={16} className="text-red-500" />
                   </div>
                 </div>
                 <p className="text-2xl font-extrabold text-gray-900">
@@ -189,12 +164,11 @@ export default function UserDashboard() {
                 </p>
               </div>
 
-              {/* Total Paid */}
               <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Paid</p>
                   <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
-                    <span className="text-green-600 text-sm">💳</span>
+                    <Wallet size={16} className="text-green-600" />
                   </div>
                 </div>
                 <p className="text-3xl font-extrabold text-gray-900">GHS {status?.totalPaid ?? 0}</p>
@@ -204,7 +178,7 @@ export default function UserDashboard() {
 
             {/* Annual Progress */}
             <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900">Annual Dues Progress</h3>
                   <p className="text-xs text-gray-400 mt-0.5">Tracking your total contributions</p>
@@ -219,99 +193,44 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            {/* Recent Payments + Badges */}
-            <div className="grid grid-cols-3 gap-5 mb-6">
-              {/* Recent Payments */}
-              <div className="col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">Recent Payments</h3>
-                  <Link to="/dashboard/history" className="text-sm text-green-700 font-semibold hover:underline">View All</Link>
-                </div>
-                {recentPayments.length === 0 ? (
-                  <p className="text-sm text-gray-400 py-6 text-center">No payments yet. Head to Pay Dues to get started.</p>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                        <th className="text-left pb-3 font-semibold">Date</th>
-                        <th className="text-left pb-3 font-semibold">Description</th>
-                        <th className="text-left pb-3 font-semibold">Amount</th>
-                        <th className="text-left pb-3 font-semibold">Status</th>
+            {/* Recent Payments */}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm overflow-x-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-900">Recent Payments</h3>
+                <Link to="/dashboard/history" className="text-sm text-green-700 font-semibold hover:underline">View All</Link>
+              </div>
+              {recentPayments.length === 0 ? (
+                <p className="text-sm text-gray-400 py-6 text-center">No payments yet. Head to Pay Dues to get started.</p>
+              ) : (
+                <table className="w-full text-sm min-w-[420px]">
+                  <thead>
+                    <tr className="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                      <th className="text-left pb-3 font-semibold">Date</th>
+                      <th className="text-left pb-3 font-semibold">Description</th>
+                      <th className="text-left pb-3 font-semibold">Amount</th>
+                      <th className="text-left pb-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {recentPayments.map((p) => (
+                      <tr key={p.id}>
+                        <td className="py-3 text-gray-400 text-xs">{new Date(p.paid_at).toLocaleDateString()}</td>
+                        <td className="py-3 text-gray-700 font-medium">{p.dues_categories?.name ?? "Dues Payment"}</td>
+                        <td className="py-3 text-gray-900 font-semibold">GHS {p.amount}</td>
+                        <td className="py-3">
+                          <span className={`text-xs font-semibold px-3 py-1 rounded-full
+                            ${p.status === "success" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
+                            {p.status === "success" ? "Completed" : p.status}
+                          </span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {recentPayments.map((p) => (
-                        <tr key={p.id}>
-                          <td className="py-3 text-gray-400 text-xs">{new Date(p.paid_at).toLocaleDateString()}</td>
-                          <td className="py-3 text-gray-700 font-medium">{p.dues_categories?.name ?? "Dues Payment"}</td>
-                          <td className="py-3 text-gray-900 font-semibold">GHS {p.amount}</td>
-                          <td className="py-3">
-                            <span className={`text-xs font-semibold px-3 py-1 rounded-full
-                              ${p.status === "success" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}`}>
-                              {p.status === "success" ? "Completed" : p.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* Badges */}
-              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">My Achievements</h3>
-                  <Trophy size={18} className="text-yellow-500" />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {badges.map((b) => (
-                    <div
-                      key={b.label}
-                      className={`flex flex-col items-center justify-center rounded-xl p-3 text-center
-                        ${b.unlocked ? "bg-gray-50" : "bg-gray-50 opacity-50"}`}
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 text-lg
-                        ${b.unlocked ? "bg-green-100" : "bg-gray-200"}`}>
-                        {b.icon}
-                      </div>
-                      <p className={`text-xs font-bold tracking-wide ${b.unlocked ? "text-gray-700" : "text-gray-400"}`}>
-                        {b.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Community Impact */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="font-bold text-gray-900">Community Impact</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">See how your contributions are making a difference</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                {projects.map((p, i) => (
-                  <div key={p.id}>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-gray-800">{p.title}</p>
-                      <p className={`text-sm font-bold ${i === 0 ? "text-green-600" : "text-yellow-500"}`}>
-                        {p.percentFunded}% Funded
-                      </p>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2 mb-2">
-                      <div className={`${i === 0 ? "bg-green-500" : "bg-yellow-400"} h-2 rounded-full`} style={{ width: `${p.percentFunded}%` }} />
-                    </div>
-                    <p className="text-xs text-gray-400">{p.description}</p>
-                  </div>
-                ))}
-              </div>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </>
         )}
-
       </main>
     </div>
   );

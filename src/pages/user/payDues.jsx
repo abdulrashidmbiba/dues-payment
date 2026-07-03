@@ -1,26 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getDuesCategories } from "../../lib/api";
 import { payWithPaystack, recordSuccessfulPayment } from "../../lib/paystack";
-import {
-  LayoutDashboard, CreditCard, History, Leaf,
-  Award, Bell, Settings, LogOut, CheckCircle2
-} from "lucide-react";
-
-const navItems = [
-  { label: "Dashboard",     icon: LayoutDashboard, to: "/dashboard" },
-  { label: "Pay Dues",      icon: CreditCard,       to: "/dashboard/pay" },
-  { label: "History",       icon: History,          to: "/dashboard/history" },
-  { label: "Impact",        icon: Leaf,             to: "/dashboard" },
-  { label: "Badges",        icon: Award,            to: "/dashboard" },
-  { label: "Notifications", icon: Bell,             to: "/dashboard" },
-  { label: "Settings",      icon: Settings,         to: "/dashboard" },
-];
+import Sidebar from "../../componenets/shared/Sidebar";
+import { CheckCircle2 } from "lucide-react";
 
 export default function PayDues() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [categories, setCategories] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -42,8 +29,6 @@ export default function PayDues() {
       }
     })();
   }, []);
-
-  const handleLogout = async () => { await logout(); navigate("/login"); };
 
   const selectedCategory = categories.find((c) => c.id === selected);
 
@@ -75,37 +60,10 @@ export default function PayDues() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <aside className="w-48 bg-gray-900 flex flex-col py-6 px-4 shrink-0">
-        <h1 className="text-lg font-bold mb-8 px-2">
-          <span className="text-green-400">Nexis</span>
-          <span className="text-yellow-400">Pay</span>
-        </h1>
-        <nav className="flex flex-col gap-1 flex-1">
-          {navItems.map(({ label, icon: Icon, to }) => (
-            <Link
-              key={label}
-              to={to}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition
-                ${label === "Pay Dues"
-                  ? "bg-green-800 text-white border-l-4 border-green-400"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"}`}
-            >
-              <Icon size={16} />
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 text-gray-400 hover:text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition"
-        >
-          <LogOut size={16} />
-          Logout
-        </button>
-      </aside>
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <Sidebar active="Pay Dues" />
 
-      <main className="flex-1 px-8 py-6 overflow-y-auto max-w-2xl">
+      <main className="flex-1 px-4 sm:px-8 py-6 overflow-y-auto max-w-2xl">
         <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Pay Dues</h2>
         <p className="text-sm text-gray-500 mb-6">Select a dues category and pay securely with Paystack.</p>
 
@@ -140,7 +98,7 @@ export default function PayDues() {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => window.print()}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-full transition"

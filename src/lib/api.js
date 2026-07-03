@@ -1,8 +1,6 @@
 import { supabase } from './supabaseClient';
 
-/* ---------------------------------------------------------- */
-/* MEMBER DASHBOARD                                            */
-/* ---------------------------------------------------------- */
+/* MEMBER DASHBOARD ------------------------------------------------ */
 
 export async function getDuesCategories() {
   const { data, error } = await supabase
@@ -14,22 +12,11 @@ export async function getDuesCategories() {
   return data;
 }
 
-/**
- * Returns payment status summary for the logged-in member:
- * total paid, total owed (based on active dues categories), % paid,
- * next due date, and whether they're fully paid up.
- */
 export async function getMemberPaymentStatus(memberId) {
-  const [{ data: categories, error: catErr }, { data: payments, error: payErr }] =
-    await Promise.all([
-      supabase.from('dues_categories').select('*').eq('active', true),
-      supabase
-        .from('payments')
-        .select('*')
-        .eq('member_id', memberId)
-        .eq('status', 'success'),
-    ]);
-
+  const [{ data: categories, error: catErr }, { data: payments, error: payErr }] = await Promise.all([
+    supabase.from('dues_categories').select('*').eq('active', true),
+    supabase.from('payments').select('*').eq('member_id', memberId).eq('status', 'success'),
+  ]);
   if (catErr) throw catErr;
   if (payErr) throw payErr;
 
@@ -65,9 +52,7 @@ export async function getPaymentHistory(memberId) {
   return data;
 }
 
-/* ---------------------------------------------------------- */
-/* COMMUNITY IMPACT BOARD                                      */
-/* ---------------------------------------------------------- */
+/* COMMUNITY IMPACT BOARD ------------------------------------------- */
 
 export async function getCommunityProjects() {
   const { data, error } = await supabase
@@ -77,29 +62,22 @@ export async function getCommunityProjects() {
   if (error) throw error;
   return data.map((p) => ({
     ...p,
-    percentFunded: p.target_amount > 0
-      ? Math.min(100, Math.round((p.raised_amount / p.target_amount) * 100))
-      : 0,
+    percentFunded: p.target_amount > 0 ? Math.min(100, Math.round((p.raised_amount / p.target_amount) * 100)) : 0,
   }));
 }
 
-/* ---------------------------------------------------------- */
-/* TREASURER DASHBOARD                                         */
-/* ---------------------------------------------------------- */
+/* TREASURER --------------------------------------------------------- */
 
 export async function getTreasurerStats() {
-  const [{ data: payments, error: payErr }, { count: totalMembers, error: memErr }] =
-    await Promise.all([
-      supabase.from('payments').select('amount, status, paid_at').eq('status', 'success'),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'member'),
-    ]);
-
+  const [{ data: payments, error: payErr }, { count: totalMembers, error: memErr }] = await Promise.all([
+    supabase.from('payments').select('amount, status, paid_at').eq('status', 'success'),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'member'),
+  ]);
   if (payErr) throw payErr;
   if (memErr) throw memErr;
 
   const totalCollected = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
-  // distinct members who have paid
   const { data: paidMemberIds, error: paidErr } = await supabase
     .from('payments')
     .select('member_id')
@@ -108,7 +86,6 @@ export async function getTreasurerStats() {
 
   const uniquePaid = new Set(paidMemberIds.map((p) => p.member_id)).size;
 
-  // monthly breakdown
   const monthly = {};
   payments.forEach((p) => {
     const month = new Date(p.paid_at).toLocaleString('default', { month: 'short', year: 'numeric' });
@@ -117,37 +94,77 @@ export async function getTreasurerStats() {
 
   return {
     totalCollected,
+    totalMembers: totalMembers ?? 0,
     membersPaid: uniquePaid,
     membersUnpaid: Math.max(0, (totalMembers ?? 0) - uniquePaid),
     monthlyBreakdown: Object.entries(monthly).map(([month, amount]) => ({ month, amount })),
   };
 }
 
-/* ---------------------------------------------------------- */
-/* ADMIN                                                        */
-/* ---------------------------------------------------------- */
+/* ADMIN --------------------------------------------------------------- */
 
 export async function getAllMembers() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data;
 }
 
 export async function removeMember(profileId) {
-  // Deletes the profile row. The linked auth.users row should be removed
-  // via the Supabase Admin API (service role) — do this from a server
-  // context, not the browser, since it needs the service key.
   const { error } = await supabase.from('profiles').delete().eq('id', profileId);
   if (error) throw error;
+}
+
+export async function updateMemberRole(profileId, role) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', profileId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function addDuesCategory({ name, amount, dueDate }) {
   const { data, error } = await supabase
     .from('dues_categories')
     .insert({ name, amount, due_date: dueDate })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getAllDuesCategories() {
+  const { data, error } = await supabase
+    .from('dues_categories')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateDuesCategory(id, { name, amount, dueDate, active }) {
+  const updates = {};
+  if (name !== undefined)   updates.name = name;
+  if (amount !== undefined) updates.amount = amount;
+  if (dueDate !== undefined) updates.due_date = dueDate;
+  if (active !== undefined) updates.active = active;
+
+  const { data, error } = await supabase
+    .from('dues_categories')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createCommunityProject({ title, description, targetAmount }) {
+  const { data, error } = await supabase
+    .from('community_projects')
+    .insert({ title, description, target_amount: targetAmount, raised_amount: 0 })
     .select()
     .single();
   if (error) throw error;
@@ -163,4 +180,62 @@ export async function updateCommunityProject(id, { raisedAmount }) {
     .single();
   if (error) throw error;
   return data;
+}
+
+/* Every payment across every member, for the Admin Payments tab. */
+export async function getAllPayments() {
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*, profiles(full_name, member_id, email), dues_categories(name)')
+    .order('paid_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function approvePayment(id) {
+  const { data, error } = await supabase
+    .from('payments')
+    .update({ status: 'success' })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function rejectPayment(id) {
+  const { data, error } = await supabase
+    .from('payments')
+    .update({ status: 'failed' })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/* ANNOUNCEMENTS --------------------------------------------------------- */
+
+export async function getAnnouncements() {
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*, profiles(full_name)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function createAnnouncement({ title, message, createdBy }) {
+  const { data, error } = await supabase
+    .from('announcements')
+    .insert({ title, message, created_by: createdBy })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteAnnouncement(id) {
+  const { error } = await supabase.from('announcements').delete().eq('id', id);
+  if (error) throw error;
 }

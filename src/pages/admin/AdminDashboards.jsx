@@ -1,9 +1,24 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
-import { getTreasurerStats, getAllMembers } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
+import { getTreasurerStats, getAllMembers, getAllPayments } from "../../lib/api";
+import {
+  LayoutDashboard, Users, CreditCard, Search, RefreshCw,
+  CheckCircle2, Megaphone, ClipboardList, Settings,
+  Banknote, Clock, Zap, Construction, LogOut, Menu, X,
+} from "lucide-react";
+import MembersPage from "./tabs/MembersPage";
+import PaymentsPage from "./tabs/PaymentsPage";
+import SystemQueryPage from "./tabs/SystemQueryPage";
+import SystemUpdatePage from "./tabs/SystemUpdatePage";
+import ApprovalsPage from "./tabs/ApprovalsPage";
+import AnnouncementsPage from "./tabs/AnnouncementsPage";
+import ReportsPage from "./tabs/ReportsPage";
+import SettingsPage from "./tabs/SettingsPage";
 
 // ── DATA ─────────────────────────────────────────────────────────
 const collectionData = [
@@ -21,15 +36,15 @@ const paymentMethods = [
 ];
 
 const navItems = [
-  { label: "Dashboard",     icon: "🟢", active: true,  badge: null },
-  { label: "Members",       icon: "👥", active: false, badge: null },
-  { label: "Payments",      icon: "💳", active: false, badge: null },
-  { label: "System Query",  icon: "🔍", active: false, badge: null },
-  { label: "System Update", icon: "🔄", active: false, badge: null },
-  { label: "Approvals",     icon: "✅", active: false, badge: 2    },
-  { label: "Announcements", icon: "📢", active: false, badge: null },
-  { label: "Reports",       icon: "📋", active: false, badge: null },
-  { label: "Settings",      icon: "⚙️", active: false, badge: null },
+  { label: "Dashboard",     icon: LayoutDashboard, active: true,  badge: null },
+  { label: "Members",       icon: Users,           active: false, badge: null },
+  { label: "Payments",      icon: CreditCard,      active: false, badge: null },
+  { label: "System Query",  icon: Search,          active: false, badge: null },
+  { label: "System Update", icon: RefreshCw,       active: false, badge: null },
+  { label: "Approvals",     icon: CheckCircle2,    active: false, badge: null },
+  { label: "Announcements", icon: Megaphone,       active: false, badge: null },
+  { label: "Reports",       icon: ClipboardList,   active: false, badge: null },
+  { label: "Settings",      icon: Settings,        active: false, badge: null },
 ];
 
 const recentActivity = [
@@ -44,7 +59,7 @@ const recentActivity = [
     time: "10 min ago",
   },
   {
-    avatar: "🔄",
+    avatarIcon: RefreshCw,
     avatarBg: "bg-orange-100",
     isIcon: true,
     name: "Treasurer",
@@ -65,7 +80,7 @@ const recentActivity = [
     time: "2 hours ago",
   },
   {
-    avatar: "📢",
+    avatarIcon: Megaphone,
     avatarBg: "bg-blue-100",
     isIcon: true,
     name: "New Announcement",
@@ -78,12 +93,12 @@ const recentActivity = [
 ];
 
 // ── STAT CARD ─────────────────────────────────────────────────────
-function StatCard({ icon, iconBg, tag, tagColor, label, value, valueClass = "text-gray-900", urgent }) {
+function StatCard({ icon: Icon, iconBg, tag, tagColor, label, value, valueClass = "text-gray-900", urgent }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 flex flex-col gap-3 shadow-sm">
       <div className="flex items-center justify-between">
-        <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center text-xl`}>
-          {icon}
+        <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon size={20} className="text-gray-700" />
         </div>
         <div className="flex items-center gap-2">
           {urgent && (
@@ -106,60 +121,103 @@ function StatCard({ icon, iconBg, tag, tagColor, label, value, valueClass = "tex
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────
-function Sidebar({ active, setActive }) {
+function Sidebar({ active, setActive, pendingCount }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  const initials = user?.full_name
+    ? user.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "AD";
+
+  const handleNavClick = (label) => {
+    setActive(label);
+    setOpen(false);
+  };
+
   return (
-    <aside className="w-56 min-h-screen bg-white border-r border-gray-100 flex flex-col fixed left-0 top-0 bottom-0 z-10">
-      {/* brand */}
-      <div className="px-5 py-5 border-b border-gray-100">
+    <>
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between bg-white border-b border-gray-100 px-4 py-3 relative z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">N</div>
-          <div>
-            <p className="font-bold text-gray-900 text-sm leading-none">NexisPay</p>
-            <p className="text-xs text-green-600 font-semibold mt-0.5">ADMIN</p>
-          </div>
+          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">N</div>
+          <p className="font-bold text-gray-900 text-sm">NexisPay</p>
         </div>
-      </div>
-
-      {/* nav */}
-      <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = active === item.label;
-          return (
-            <button
-              key={item.label}
-              onClick={() => setActive(item.label)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left
-                ${isActive ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
-            >
-              <span className="text-base">{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* user */}
-      <div className="px-4 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-600">SK</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">Dr. S. K. Boateng</p>
-            <p className="text-xs text-gray-400">System Administrator</p>
-          </div>
-        </div>
-        <button className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
-          </svg>
-          Logout
+        <button onClick={() => setOpen(true)} className="text-gray-700">
+          <Menu size={22} />
         </button>
       </div>
-    </aside>
+
+      {/* Backdrop */}
+      {open && (
+        <div onClick={() => setOpen(false)} className="fixed inset-0 bg-black/50 z-40 md:hidden" />
+      )}
+
+      {/* Drawer on mobile, static sidebar on desktop */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 h-full md:h-screen w-64 md:w-56 bg-white border-r border-gray-100 flex flex-col z-50
+          transform transition-transform duration-300 ease-in-out
+          ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+      >
+        {/* brand */}
+        <div className="px-5 py-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">N</div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm leading-none">NexisPay</p>
+              <p className="text-xs text-green-600 font-semibold mt-0.5">ADMIN</p>
+            </div>
+          </div>
+          <button onClick={() => setOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* nav */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive = active === item.label;
+            const badgeValue = item.label === "Approvals" ? pendingCount : item.badge;
+            return (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item.label)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left
+                  ${isActive ? "bg-green-50 text-green-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+              >
+                <item.icon size={17} className={isActive ? "text-green-700" : "text-gray-500"} />
+                <span className="flex-1">{item.label}</span>
+                {!!badgeValue && (
+                  <span className="w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {badgeValue}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* user */}
+        <div className="px-4 py-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-gray-600">{initials}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-800 truncate">{user?.full_name ?? "Admin"}</p>
+              <p className="text-xs text-gray-400 capitalize">{user?.role ?? "administrator"}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition">
+            <LogOut size={14} />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -213,12 +271,12 @@ function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* page header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Overview</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Overview</h1>
           <p className="text-sm text-gray-400 mt-0.5">Welcome back. Here's what's happening with NexisPay today.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 8l-3-3m3 3l3-3"/>
@@ -235,21 +293,21 @@ function DashboardPage() {
       </div>
 
       {/* stat cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon="👥" iconBg="bg-blue-50"
+          icon={Users} iconBg="bg-blue-50"
           label="Total Members" value={liveStats ? liveStats.totalMembers : "…"}
         />
         <StatCard
-          icon="✅" iconBg="bg-green-50"
+          icon={CheckCircle2} iconBg="bg-green-50"
           label="Members Paid" value={liveStats ? liveStats.membersPaid : "…"}
         />
         <StatCard
-          icon="💰" iconBg="bg-yellow-50"
+          icon={Banknote} iconBg="bg-yellow-50"
           label="Total Revenue" value={liveStats ? `GHS ${liveStats.totalCollected}` : "…"}
         />
         <StatCard
-          icon="🔄" iconBg="bg-red-50"
+          icon={Clock} iconBg="bg-red-50"
           urgent={true}
           label="Pending Approvals" value="2"
           valueClass="text-gray-900"
@@ -260,20 +318,20 @@ function DashboardPage() {
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <span className="text-lg">⚡</span>
+            <Zap size={18} className="text-yellow-500" />
             <h2 className="font-bold text-gray-900">Recent Activity</h2>
           </div>
           <button className="text-sm font-semibold text-green-700 hover:underline">View Stream</button>
         </div>
         <div className="flex flex-col divide-y divide-gray-50">
           {recentActivity.map((a, i) => (
-            <div key={i} className="flex items-center gap-4 py-3.5">
+            <div key={i} className="flex flex-wrap items-center gap-4 py-3.5">
               {/* avatar */}
               <div className={`w-10 h-10 rounded-full ${a.avatarBg} flex items-center justify-center text-sm font-bold text-gray-600 flex-shrink-0`}>
-                {a.isIcon ? <span className="text-lg">{a.avatar}</span> : a.avatar}
+                {a.isIcon ? <a.avatarIcon size={16} className="text-gray-600" /> : a.avatar}
               </div>
               {/* text */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-[180px]">
                 <p className="text-sm text-gray-800">
                   <span className="font-semibold">{a.name}</span>{" "}
                   <span>{a.action}</span>{" "}
@@ -289,10 +347,10 @@ function DashboardPage() {
       </div>
 
       {/* charts row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* area chart */}
-        <div className="col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <div className="flex items-start justify-between mb-1">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
             <div>
               <h2 className="font-bold text-gray-900">Collection over time</h2>
               <p className="text-xs text-gray-400 mt-0.5">Monthly revenue trends for the current academic cycle.</p>
@@ -364,31 +422,57 @@ function DashboardPage() {
   );
 }
 
-// ── PLACEHOLDER PAGE ──────────────────────────────────────────────
+// ── PLACEHOLDER PAGE (fallback only, shouldn't normally be reached) ──
 function PlaceholderPage({ title }) {
   return (
     <div className="flex items-center justify-center h-64">
       <div className="text-center">
-        <p className="text-2xl mb-2">🚧</p>
+        <Construction className="mx-auto mb-2 text-gray-400" size={28} />
         <p className="text-gray-500 font-medium">{title} page coming soon</p>
       </div>
     </div>
   );
 }
 
+const pageComponents = {
+  Dashboard:       DashboardPage,
+  Members:         MembersPage,
+  Payments:        PaymentsPage,
+  "System Query":  SystemQueryPage,
+  "System Update": SystemUpdatePage,
+  Approvals:       ApprovalsPage,
+  Announcements:   AnnouncementsPage,
+  Reports:         ReportsPage,
+  Settings:        SettingsPage,
+};
+
 // ── APP ROOT ──────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const [activePage, setActivePage] = useState("Dashboard");
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const refreshPendingCount = async () => {
+    try {
+      const all = await getAllPayments();
+      setPendingCount(all.filter((p) => p.status === "pending").length);
+    } catch (err) {
+      console.error("Failed to load pending approvals count:", err);
+    }
+  };
+
+  useEffect(() => { refreshPendingCount(); }, []);
+
+  const ActivePage = pageComponents[activePage] ?? (() => <PlaceholderPage title={activePage} />);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans antialiased flex">
-      <Sidebar active={activePage} setActive={setActivePage} />
+    <div className="min-h-screen bg-gray-50 font-sans antialiased flex flex-col md:flex-row">
+      <Sidebar active={activePage} setActive={setActivePage} pendingCount={pendingCount} />
 
       {/* main content */}
-      <main className="flex-1 ml-56 p-8 min-h-screen">
-        {activePage === "Dashboard"
-          ? <DashboardPage />
-          : <PlaceholderPage title={activePage} />
+      <main className="flex-1 p-4 sm:p-6 md:p-8 min-h-screen overflow-x-hidden">
+        {activePage === "Approvals"
+          ? <ActivePage onPendingCountChange={refreshPendingCount} />
+          : <ActivePage />
         }
       </main>
     </div>
