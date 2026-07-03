@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { getAllPayments, approvePayment, rejectPayment } from "../../../lib/api";
+import { useToast } from "../../../context/ToastContext";
 import { CheckCircle2, XCircle, Loader2, Inbox } from "lucide-react";
 
 export default function ApprovalsPage({ onPendingCountChange }) {
+  const { toastSuccess, toastError } = useToast();
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
 
   const load = async () => {
@@ -13,7 +14,7 @@ export default function ApprovalsPage({ onPendingCountChange }) {
       const all = await getAllPayments();
       setPending(all.filter((p) => p.status === "pending"));
     } catch (err) {
-      setError(err.message || "Could not load pending payments.");
+      toastError(err.message || "Could not load pending payments.");
     } finally {
       setLoading(false);
     }
@@ -27,8 +28,9 @@ export default function ApprovalsPage({ onPendingCountChange }) {
       await approvePayment(id);
       setPending((prev) => prev.filter((p) => p.id !== id));
       onPendingCountChange?.();
+      toastSuccess("Payment approved.");
     } catch (err) {
-      setError(err.message || "Could not approve payment.");
+      toastError(err.message || "Could not approve payment.");
     } finally {
       setBusyId(null);
     }
@@ -40,8 +42,9 @@ export default function ApprovalsPage({ onPendingCountChange }) {
       await rejectPayment(id);
       setPending((prev) => prev.filter((p) => p.id !== id));
       onPendingCountChange?.();
+      toastSuccess("Payment rejected.");
     } catch (err) {
-      setError(err.message || "Could not reject payment.");
+      toastError(err.message || "Could not reject payment.");
     } finally {
       setBusyId(null);
     }
@@ -53,10 +56,6 @@ export default function ApprovalsPage({ onPendingCountChange }) {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Approvals</h1>
         <p className="text-sm text-gray-400 mt-0.5">Payments awaiting manual review.</p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
         {loading ? (

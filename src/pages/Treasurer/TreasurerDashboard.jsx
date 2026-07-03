@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { getTreasurerStats, getAllPayments } from "../../lib/api";
 import {
   LayoutDashboard, Users, CreditCard, Search, RefreshCw,
@@ -142,9 +143,9 @@ function Sidebar({ active, setActive, pendingCount }) {
 
 // ── OVERVIEW PAGE ─────────────────────────────────────────────────
 function OverviewPage() {
+  const { toastError } = useToast();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -152,7 +153,7 @@ function OverviewPage() {
         const data = await getTreasurerStats();
         setStats(data);
       } catch (err) {
-        setError(err.message || "Could not load treasurer stats.");
+        toastError(err.message || "Could not load treasurer stats.");
       } finally {
         setLoading(false);
       }
@@ -169,10 +170,6 @@ function OverviewPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Treasurer Overview</h1>
         <p className="text-sm text-gray-400 mt-0.5">Collections and outstanding dues at a glance.</p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading...</p>
@@ -212,14 +209,14 @@ function OverviewPage() {
     </div>
   );
 }
+
 function TreasurerMembersPage() {
   return <MembersPage canManage={false} />;
 }
 
-
 const pageComponents = {
   Dashboard:       OverviewPage,
-  Members:        TreasurerMembersPage,
+  Members:         TreasurerMembersPage,
   Payments:        PaymentsPage,
   "System Query":  SystemQueryPage,
   "System Update": SystemUpdatePage,

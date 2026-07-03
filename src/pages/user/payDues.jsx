@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { getDuesCategories } from "../../lib/api";
 import { payWithPaystack, recordSuccessfulPayment } from "../../lib/paystack";
 import Sidebar from "../../componenets/shared/Sidebar";
@@ -8,6 +9,7 @@ import { CheckCircle2 } from "lucide-react";
 
 export default function PayDues() {
   const { user } = useAuth();
+  const { toastSuccess, toastError } = useToast();
 
   const [categories, setCategories] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -23,7 +25,9 @@ export default function PayDues() {
         setCategories(data);
         if (data.length > 0) setSelected(data[0].id);
       } catch (err) {
-        setError(err.message || "Could not load dues categories.");
+        const msg = err.message || "Could not load dues categories.";
+        setError(msg);
+        toastError(msg);
       } finally {
         setLoading(false);
       }
@@ -48,12 +52,13 @@ export default function PayDues() {
         categoryId: selectedCategory.id,
       });
       setReceipt(payment);
+      toastSuccess(`Payment successful — GHS ${selectedCategory.amount} paid.`);
     } catch (err) {
-      if (err?.closed) {
-        setError("Payment window closed before completing.");
-      } else {
-        setError(err.message || "Something went wrong recording your payment. Contact the treasurer if you were charged.");
-      }
+      const msg = err?.closed
+        ? "Payment window closed before completing."
+        : (err.message || "Something went wrong recording your payment. Contact the treasurer if you were charged.");
+      setError(msg);
+      toastError(msg);
     } finally {
       setPaying(false);
     }
@@ -146,12 +151,6 @@ export default function PayDues() {
                 </label>
               ))}
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">
-                {error}
-              </div>
-            )}
 
             <button
               onClick={handlePay}

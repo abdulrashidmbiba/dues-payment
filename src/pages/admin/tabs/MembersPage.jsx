@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { getAllMembers, updateMemberRole, removeMember } from "../../../lib/api";
+import { useToast } from "../../../context/ToastContext";
 import { Search, Trash2, Loader2 } from "lucide-react";
 
 const ROLES = ["member", "treasurer", "admin"];
@@ -11,18 +12,18 @@ const roleBadgeStyle = {
 };
 
 export default function MembersPage({ canManage = true }) {
+  const { toastSuccess, toastError } = useToast();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [busyId, setBusyId] = useState(null);
+  const [busyId, setBusyId] = useState(null); // id currently saving a role/delete change
 
   const load = async () => {
     try {
       const data = await getAllMembers();
       setMembers(data);
     } catch (err) {
-      setError(err.message || "Could not load members.");
+      toastError(err.message || "Could not load members.");
     } finally {
       setLoading(false);
     }
@@ -42,12 +43,12 @@ export default function MembersPage({ canManage = true }) {
 
   const handleRoleChange = async (id, role) => {
     setBusyId(id);
-    setError("");
     try {
       await updateMemberRole(id, role);
       setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, role } : m)));
+      toastSuccess("Role updated.");
     } catch (err) {
-      setError(err.message || "Could not update role.");
+      toastError(err.message || "Could not update role.");
     } finally {
       setBusyId(null);
     }
@@ -56,12 +57,12 @@ export default function MembersPage({ canManage = true }) {
   const handleRemove = async (id, name) => {
     if (!window.confirm(`Remove ${name}? This deletes their profile permanently.`)) return;
     setBusyId(id);
-    setError("");
     try {
       await removeMember(id);
       setMembers((prev) => prev.filter((m) => m.id !== id));
+      toastSuccess(`${name} removed.`);
     } catch (err) {
-      setError(err.message || "Could not remove member.");
+      toastError(err.message || "Could not remove member.");
     } finally {
       setBusyId(null);
     }
@@ -84,10 +85,6 @@ export default function MembersPage({ canManage = true }) {
           />
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
         {loading ? (

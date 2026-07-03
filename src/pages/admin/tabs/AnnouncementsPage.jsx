@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
 import { getAnnouncements, createAnnouncement, deleteAnnouncement } from "../../../lib/api";
 import { Megaphone, Trash2, Loader2 } from "lucide-react";
 
 export default function AnnouncementsPage() {
   const { user } = useAuth();
+  const { toastSuccess, toastError } = useToast();
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [form, setForm] = useState({ title: "", message: "" });
   const [posting, setPosting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -17,7 +18,7 @@ export default function AnnouncementsPage() {
       const data = await getAnnouncements();
       setAnnouncements(data);
     } catch (err) {
-      setError(err.message || "Could not load announcements.");
+      toastError(err.message || "Could not load announcements.");
     } finally {
       setLoading(false);
     }
@@ -29,7 +30,6 @@ export default function AnnouncementsPage() {
     e.preventDefault();
     if (!form.title.trim() || !form.message.trim()) return;
     setPosting(true);
-    setError("");
     try {
       const created = await createAnnouncement({
         title: form.title,
@@ -38,8 +38,9 @@ export default function AnnouncementsPage() {
       });
       setAnnouncements((prev) => [{ ...created, profiles: { full_name: user.full_name } }, ...prev]);
       setForm({ title: "", message: "" });
+      toastSuccess("Announcement posted.");
     } catch (err) {
-      setError(err.message || "Could not post announcement. Have you run migration_2_announcements.sql yet?");
+      toastError(err.message || "Could not post announcement. Have you run migration_2_announcements.sql yet?");
     } finally {
       setPosting(false);
     }
@@ -51,8 +52,9 @@ export default function AnnouncementsPage() {
     try {
       await deleteAnnouncement(id);
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      toastSuccess("Announcement deleted.");
     } catch (err) {
-      setError(err.message || "Could not delete announcement.");
+      toastError(err.message || "Could not delete announcement.");
     } finally {
       setDeletingId(null);
     }
@@ -61,13 +63,9 @@ export default function AnnouncementsPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Announcements</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Announcements</h1>
         <p className="text-sm text-gray-400 mt-0.5">Broadcast updates to your organization.</p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
 
       <form onSubmit={handlePost} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
         <input

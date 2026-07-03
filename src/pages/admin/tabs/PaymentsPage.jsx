@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { getAllPayments } from "../../../lib/api";
+import { useToast } from "../../../context/ToastContext";
 import { Search } from "lucide-react";
 
 const statusStyle = {
@@ -9,9 +10,9 @@ const statusStyle = {
 };
 
 export default function PaymentsPage() {
+  const { toastError } = useToast();
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function PaymentsPage() {
         const data = await getAllPayments();
         setPayments(data);
       } catch (err) {
-        setError(err.message || "Could not load payments.");
+        toastError(err.message || "Could not load payments.");
       } finally {
         setLoading(false);
       }
@@ -64,10 +65,6 @@ export default function PaymentsPage() {
           </div>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
         {loading ? (

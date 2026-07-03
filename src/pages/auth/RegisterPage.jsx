@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { registerMember } from "../../lib/auth";
+import { useToast } from "../../context/ToastContext";
 
 // Moved OUTSIDE the RegisterPage component on purpose. Defining this inside
 // RegisterPage meant it was recreated as a brand-new component on every
@@ -39,6 +40,7 @@ function Field({ label, name, type = "text", placeholder, showToggle, show, onTo
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { toastSuccess, toastError } = useToast();
   const [step, setStep]       = useState("form"); // "form" | "success"
   const [memberId, setMemberId] = useState("");
   const [showPw, setShowPw]   = useState(false);
@@ -80,8 +82,11 @@ export default function RegisterPage() {
       });
       setMemberId(profile.member_id);
       setStep("success");
+      toastSuccess(`Welcome to NexisPay! Your Member ID is ${profile.member_id}.`);
     } catch (err) {
-      setSubmitError(err.message || "Registration failed. Please try again.");
+      const msg = err.message || "Registration failed. Please try again.";
+      setSubmitError(msg);
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -128,13 +133,6 @@ export default function RegisterPage() {
           <h2 className="text-xl font-bold text-gray-900 mt-2">Create Your Account</h2>
           <p className="text-sm text-gray-500 mt-1">Join your organization today</p>
         </div>
-
-        {submitError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
-            <span className="text-red-500">⚠️</span>
-            <p className="text-red-600 text-sm">{submitError}</p>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <Field

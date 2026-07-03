@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { getPaymentHistory } from "../../lib/api";
 import Sidebar from "../../componenets/shared/Sidebar";
 import { Printer, X } from "lucide-react";
 
 export default function BalanceRecords() {
   const { user } = useAuth();
+  const { toastError } = useToast();
 
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,9 @@ export default function BalanceRecords() {
         const data = await getPaymentHistory(user.id);
         setPayments(data);
       } catch (err) {
-        setError(err.message || "Could not load payment history.");
+        const msg = err.message || "Could not load payment history.";
+        setError(msg);
+        toastError(msg);
       } finally {
         setLoading(false);
       }
@@ -45,10 +49,6 @@ export default function BalanceRecords() {
             <p className="text-xl font-extrabold text-green-700">GHS {totalPaid}</p>
           </div>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-600">{error}</div>
-        )}
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
           {loading ? (
